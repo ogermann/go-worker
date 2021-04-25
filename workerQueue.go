@@ -20,7 +20,7 @@ type workerPool struct {
 
 // NewWorkerQueue spawns a new set of worker that accepts jobs which return void to be executed in parallel.
 // after creation use the Do func to register jobs for processing.
-func NewWorkerQueue(workerCount int, bufferSize int) *workerPool {
+func NewWorkerQueue(workerCount int, bufferSize int) WorkerQueue {
 	w := &workerPool{
 		workerCount: workerCount,
 	}
