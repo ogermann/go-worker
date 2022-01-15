@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"github.com/stretchr/testify/assert"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -13,16 +14,8 @@ type testJob struct {
 	job       func()
 }
 
-func (j *testJob) Equals(obj interface{}) bool {
-	cast, ok := obj.(*testJob)
-	if !ok {
-		return false
-	}
-	return j.id == cast.id
-}
-
-func (j *testJob) HashCode() int {
-	return int(j.id)
+func (j *testJob) Id() string {
+	return strconv.Itoa(int(j.id))
 }
 
 func (j *testJob) Run(ctx context.Context) {

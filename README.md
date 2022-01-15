@@ -27,5 +27,5 @@ need to match the DistinctiveJob interface.
 ## sequentialPerIdWorkerQueue
 A worker that processes all jobs with the same id in sequential
 order. All other jobs are paralleled (if workerCount > 1). The jobs
-need to match the DistinctiveJob interface.
+need to match the SequentialPerIdJob interface.
 

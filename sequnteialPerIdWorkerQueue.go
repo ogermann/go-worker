@@ -5,12 +5,17 @@ import (
 	"sync"
 )
 
+type SequentialPerIdJob interface {
+	Job
+	Id() string
+}
+
 // SequentialPerIdWorkerQueue is a worker queue, that guarantees a single threaded execution for all jobs with the
 // same comparable result.
 type SequentialPerIdWorkerQueue interface {
 	// Do register a DistinctiveJob for being processed by a worker when the worker is ready, the
 	// job will be scheduled after other jobs with same id and will never run in parallel with them.
-	Do(job DistinctiveJob)
+	Do(job SequentialPerIdJob)
 	// Close the jobs channel so no new jobs can be queued. It is not necessary to close the channel for cleanup.
 	Close()
 	// GetQueueSize return the size of all waiting jobs in the queue
@@ -19,16 +24,16 @@ type SequentialPerIdWorkerQueue interface {
 
 type sequentialPerIdWorkerQueue struct {
 	sync.RWMutex
-	sequentialQueue           map[int]chan DistinctiveJob
+	sequentialQueue           map[string]chan SequentialPerIdJob
 	sequentialQueueBufferSize int
-	queue                     chan DistinctiveJob
+	queue                     chan SequentialPerIdJob
 	cancel                    context.CancelFunc
 }
 
 func NewSequentialPerIdWorkerQueue(ctx context.Context, workerCount int, bufferSize int, sequentialQueueBufferSize int) SequentialPerIdWorkerQueue {
 	instance := &sequentialPerIdWorkerQueue{
-		sequentialQueue:           make(map[int]chan DistinctiveJob),
-		queue:                     make(chan DistinctiveJob, bufferSize),
+		sequentialQueue:           make(map[string]chan SequentialPerIdJob),
+		queue:                     make(chan SequentialPerIdJob, bufferSize),
 		sequentialQueueBufferSize: sequentialQueueBufferSize,
 	}
 
@@ -43,16 +48,16 @@ func NewSequentialPerIdWorkerQueue(ctx context.Context, workerCount int, bufferS
 	return instance
 }
 
-func (q *sequentialPerIdWorkerQueue) Do(job DistinctiveJob) {
+func (q *sequentialPerIdWorkerQueue) Do(job SequentialPerIdJob) {
 	q.queue <- job
 }
 
-func (q *sequentialPerIdWorkerQueue) registerJob(ctx context.Context, originJob DistinctiveJob) {
+func (q *sequentialPerIdWorkerQueue) registerJob(ctx context.Context, originJob SequentialPerIdJob) {
 	// check if there are jobs in the sequentialQueue to process first
 	q.Lock()
-	sq, ok := q.sequentialQueue[originJob.HashCode()]
+	sq, ok := q.sequentialQueue[originJob.Id()]
 	if !ok {
-		sq = make(chan DistinctiveJob, q.sequentialQueueBufferSize)
+		sq = make(chan SequentialPerIdJob, q.sequentialQueueBufferSize)
 		q.Unlock()
 		select {
 		case sq <- originJob:
@@ -85,7 +90,7 @@ func (q *sequentialPerIdWorkerQueue) registerJob(ctx context.Context, originJob 
 				q.Unlock()
 				continue
 			}
-			delete(q.sequentialQueue, job.HashCode())
+			delete(q.sequentialQueue, job.Id())
 			q.Unlock()
 			break
 		}
