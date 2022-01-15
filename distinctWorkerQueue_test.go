@@ -7,24 +7,24 @@ import (
 	"time"
 )
 
-type testJob struct {
-	poolId	uint64
+type testJob2 struct {
+	poolId    uint64
 	controlCh chan uint64
 }
 
-func (j *testJob) Equals(obj interface{}) bool {
-	cast, ok := obj.(*testJob)
+func (j *testJob2) Equals(obj interface{}) bool {
+	cast, ok := obj.(*testJob2)
 	if !ok {
 		return false
 	}
 	return j.poolId == cast.poolId
 }
 
-func (j *testJob) HashCode() int {
+func (j *testJob2) HashCode() int {
 	return int(j.poolId)
 }
 
-func (j *testJob) Run(ctx context.Context) {
+func (j *testJob2) Run(ctx context.Context) {
 	time.Sleep(1 * time.Millisecond)
 	j.controlCh <- j.poolId
 }
@@ -32,8 +32,8 @@ func (j *testJob) Run(ctx context.Context) {
 func TestDistinctWorkerQueue_Basic(t *testing.T) {
 	controlCh := make(chan uint64, 11)
 
-	newJob := func(id uint64) *testJob {
-		return &testJob{id, controlCh}
+	newJob := func(id uint64) *testJob2 {
+		return &testJob2{id, controlCh}
 	}
 
 	queue := NewDistinctWorkerQueue(1, 100)

@@ -7,13 +7,13 @@ import (
 )
 
 // DistinctWorkerQueue is a queue taking DistinctiveJob(s) and executing their Run methods when they
-// are ready. The Jobs will be executed in order. A new job wont be added if there already is another
-// equal job in the queue.
+// are ready. The execution order is not guaranteed. A new job won't be added if there already is another
+// equal job with the same id is in the queue.
 // If there's more than one worker configured, jobs will be executed in parallel, so be sure these jobs
 // only use external data that can be accessed in parallel.
 type DistinctWorkerQueue interface {
-	// Do register an DistinctiveJob for being processed by a worker when the worker is ready, the
-	// job will be ignore if there's already an equal unprocessed job in the queue
+	// Do register a DistinctiveJob for being processed by a worker when the worker is ready, the
+	// job will be ignored if there's already an equal unprocessed job in the queue
 	Do(job DistinctiveJob)
 	// Close the jobs channel so no new jobs can be queued. It is not necessary to close the channel
 	Close()
