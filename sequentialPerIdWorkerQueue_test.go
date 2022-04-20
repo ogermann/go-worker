@@ -19,8 +19,8 @@ func (j *testJob) Id() string {
 }
 
 func (j *testJob) Run(ctx context.Context) {
-	j.controlCh <- 1
 	j.job()
+	j.controlCh <- 1
 }
 
 func TestSequentialPerIdWorkerQueue_ProcessAllJobs(t *testing.T) {
@@ -52,31 +52,37 @@ func TestSequentialPerIdWorkerQueue_ProcessAllJobs(t *testing.T) {
 func TestSequentialPerIdWorkerQueue_ProcessNotParallel(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	controlCh := make(chan uint64, 100)
-	c := make(map[uint64]int)
-	c[1] = 0
-	c[2] = 0
+	controlCh := make(chan uint64, 200)
 
+	resMap := make(map[string]struct{})
+	count := 0
 	newJob := func(id uint64) *testJob {
 		return &testJob{id, controlCh, func() {
-			c[id] += 1
+			time.Sleep(10 * time.Millisecond)
+			count++
+			resMap["12313123"] = struct{}{}
 		}}
 	}
 
-	queue := NewSequentialPerIdWorkerQueue(ctx, 2, 100, 100)
+	queue := NewSequentialPerIdWorkerQueue(ctx, 10, 200, 200)
 
-	for x := 0; x < 100; x++ {
-		queue.Do(newJob(uint64((x % 2) + 1)))
+	go func() {
+		for x := 0; x < 100; x++ {
+			queue.Do(newJob(1))
+		}
+	}()
+
+	go func() {
+		for x := 0; x < 100; x++ {
+			queue.Do(newJob(1))
+		}
+	}()
+
+	for i := 0; i < 200; i++ {
+		<-controlCh
 	}
 
-	count := uint64(0)
-	for i := 0; i < 100; i++ {
-		count += <-controlCh
-	}
-
-	assert.Equal(t, 100, int(count))
-	assert.Equal(t, 50, c[1])
-	assert.Equal(t, 50, c[2])
+	assert.Equal(t, 200, count)
 	assert.Len(t, queue.(*sequentialPerIdWorkerQueue).queue, 0)
 	assert.Len(t, queue.(*sequentialPerIdWorkerQueue).sequentialQueue, 0)
 	queue.Close()

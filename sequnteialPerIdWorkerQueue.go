@@ -58,6 +58,7 @@ func (q *sequentialPerIdWorkerQueue) registerJob(ctx context.Context, originJob 
 	sq, ok := q.sequentialQueue[originJob.Id()]
 	if !ok {
 		sq = make(chan SequentialPerIdJob, q.sequentialQueueBufferSize)
+		q.sequentialQueue[originJob.Id()] = sq
 		q.Unlock()
 		select {
 		case sq <- originJob:
